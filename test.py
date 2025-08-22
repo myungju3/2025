@@ -43,13 +43,24 @@ survey_score = sum(responses)
 # ------------------
 st.subheader("⏰ 수면 시간 입력")
 
-sleep_dt = st.datetime_input("취침 시각을 입력하세요", value=datetime.now())
-wake_dt = st.datetime_input("기상 시각을 입력하세요", value=datetime.now())
+# ------------------
+# 2. 취침 & 기상 시각 입력
+# ------------------
+st.subheader("⏰ 수면 시간 입력")
+
+sleep_date = st.date_input("취침 날짜", value=datetime.today())
+sleep_time = st.time_input("취침 시각", value=datetime.now().time())
+sleep_dt = datetime.combine(sleep_date, sleep_time)
+
+wake_date = st.date_input("기상 날짜", value=datetime.today())
+wake_time = st.time_input("기상 시각", value=datetime.now().time())
+wake_dt = datetime.combine(wake_date, wake_time)
 
 # 수면 시간 계산
 if wake_dt < sleep_dt:
     st.warning("⚠️ 기상 시각이 취침 시각보다 이릅니다. 날짜를 확인하세요!")
 sleep_duration = (wake_dt - sleep_dt).seconds / 3600  # 시간 단위
+
 
 # ------------------
 # 3. 수면 단계 추정 및 점수 계산
