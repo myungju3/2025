@@ -1,4 +1,101 @@
 import streamlit as st
+import numpy as np
+import pandas as pd
+from datetime import datetime
+
+st.set_page_config(page_title="수면 단계 & 질 평가", page_icon="💤", layout="centered")
+
+st.title("😴 수면 단계 자가 설문 & 수면 질 평가")
+
+st.markdown("""
+간단한 체크리스트와 수면 시간을 입력하면, 
+수면 단계 그래프와 수면의 질 점수를 알려줍니다.
+
+**⚠️ 주의: 본 앱은 의료적 진단이 아닌 참고용입니다.**
+""")
+
+# ------------------
+# 1. 설문지 체크리스트
+# ------------------
+st.subheader("📋 수면 단계 자가 설문")
+
+questions = [
+    ("잠드는 동안 눈꺼풀이 무겁고, 깜빡거리다 눈이 감기려고 했나요?", "잠드는 중"),
+    ("잠드는 동안 몸이 점점 느려지고, 근육이 풀린 느낌이 있었나요?", "잠드는 중"),
+    ("잠드는 동안 갑자기 깜짝 놀라거나, 떨어지는 듯한 느낌을 경험했나요?", "잠드는 중"),
+    ("잠드는 동안 시간 감각이 흐려지고, 생각이 이어지지 않았나요?", "잠드는 중"),
+    ("잠자는 동안 꿈을 꾸는 듯한 장면이 어렴풋이 떠오른 적이 있었나요?", "잠자는 중"),
+    ("기상 후 방금까지 무슨 생각/꿈을 했는지 기억이 애매했나요?", "기상 후"),
+    ("잠자는 동안 호흡이 일정하고 느려진 걸 느꼈나요?", "잠자는 중"),
+    ("잠자는 동안 심장이 차분해지고, 몸이 무거운 느낌이 있었나요?", "잠자는 중"),
+    ("잠자는 동안 가끔 몸이 움찔거린 경험이 있었나요?", "잠자는 중")
+]
+
+responses = []
+for q, phase in questions:
+    res = st.checkbox(f"{q} ({phase})")
+    responses.append(1 if res else 0)
+
+survey_score = sum(responses)
+
+# ------------------
+# 2. 취침 & 기상 시각 입력
+# ------------------
+st.subheader("⏰ 수면 시간 입력")
+
+sleep_dt = st.datetime_input("취침 시각을 입력하세요", value=datetime.now())
+wake_dt = st.datetime_input("기상 시각을 입력하세요", value=datetime.now())
+
+# 수면 시간 계산
+if wake_dt < sleep_dt:
+    st.warning("⚠️ 기상 시각이 취침 시각보다 이릅니다. 날짜를 확인하세요!")
+sleep_duration = (wake_dt - sleep_dt).seconds / 3600  # 시간 단위
+
+# ------------------
+# 3. 수면 단계 추정 및 점수 계산
+# ------------------
+
+if st.button("📊 결과 보기"):
+    # 수면 단계 추정
+    if survey_score <= 3:
+        stage = "각성"
+    elif survey_score <= 7:
+        stage = "얕은 수면"
+    elif survey_score <= 10:
+        stage = "깊은 수면"
+    else:
+        stage = "REM 수면"
+
+    # 수면 질 점수 (단순 모델)
+    quality_score = min(100, survey_score * 5 + int(sleep_duration * 10))
+
+    st.success(f"현재 추정 수면 단계: **{stage}** 💤")
+    st.metric("수면 질 점수 (100점 만점)", f"{quality_score}점")
+
+    # ------------------
+    # 4. 수면 단계 그래프 (Streamlit 내장 차트)
+    # ------------------
+    st.subheader("📈 수면 단계 추정 그래프")
+
+    hours = np.linspace(0, sleep_duration, int(sleep_duration*6))  # 10분 단위
+    stages = []
+
+    # 간단한 수면 주기 모델 (약 90분 주기)
+    cycle_length = 1.5  # 시간
+    for h in hours:
+        cycle_pos = (h % cycle_length) / cycle_length
+        if cycle_pos < 0.1:
+            stages.append(0)  # 각성
+        elif cycle_pos < 0.5:
+            stages.append(2)  # 깊은 수면
+        elif cycle_pos < 0.8:
+            stages.append(1)  # 얕은 수면
+        else:
+            stages.append(3)  # REM 수면
+
+    df = pd.DataFrame({"시간(시간)": hours, "수면 단계": stages})
+    st.line_chart(df.set_index("시간(시간)"))
+import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
