@@ -52,4 +52,99 @@ if st.button("📊 결과 보기", key="result_btn"):
     score = 100
     if q1 == "불안했다": score -= 10
     if q2 == "1~2번 깼다": score -= 8
-    if q2 == "3번 이상 깼다": sco
+    if q2 == "3번 이상 깼다": score -= 20
+    if q3 == "여전히 피곤하다": score -= 15
+    if q4 == "좋지 않다": score -= 10
+    if q5 == "1시간 이상": score -= 12
+    if q6 == "자주 그렇다": score -= 8
+    if q7 == "예": score -= 5
+    if q8 == "자주 있다": score -= 15
+    if q9 == "자주 꾼다": score -= 5
+    if q10 == "거의 없다": score -= 10
+
+    # 수면 시간 보정
+    if total_sleep < 6: score -= 15
+    elif total_sleep > 9: score -= 8
+
+    score = max(0, min(100, score))  # 0~100 사이로 제한
+
+    # 결과 출력
+    st.success(f"🌙 총 수면 시간: {total_sleep:.1f} 시간")
+    st.success(f"✨ 수면의 질 점수: **{score}점 / 100점**")
+
+    # 해석 메시지
+    if score >= 80:
+        st.info("✅ 수면의 질이 매우 좋습니다. 지금 생활 습관을 유지하세요!")
+    elif score >= 60:
+        st.info("😐 수면의 질이 보통 수준입니다. 카페인 섭취나 전자기기 사용을 줄이면 더 좋아질 수 있습니다.")
+    else:
+        st.info("⚠️ 수면의 질이 낮습니다. 규칙적인 취침 시간, 전자기기 줄이기, 수면 환경 개선이 필요합니다.")
+
+    # -----------------------------
+    # 수면 단계 시뮬레이션 그래프
+    # -----------------------------
+    st.subheader("📈 예상 수면 단계 변화")
+
+    # 단계: 0=깊은수면, 1=얕은수면, 2=REM, 3=각성
+    cycle = [1, 0, 1, 2]  # 얕은 → 깊은 → 얕은 → REM (90분 주기)
+    stages = []
+    timestamps = []
+
+    t = sleep_dt
+    while t < wake_dt:
+        for c in cycle:
+            stages.append(c)
+            timestamps.append(t)
+            t += timedelta(minutes=90/len(cycle))  # 각 단계 약 22.5분
+            if t >= wake_dt:
+                break
+
+    fig, ax = plt.subplots(figsize=(10,4))
+    ax.step(timestamps, stages, where="post", linewidth=2)
+
+    # 색상과 라벨 정의
+    colors = {0:"navy", 1:"skyblue", 2:"orange", 3:"red"}
+    labels = {0:"깊은 수면", 1:"얕은 수면", 2:"REM", 3:"각성"}
+
+    for i in range(len(stages)-1):
+        # 색상 영역 채우기
+        ax.fill_between([timestamps[i], timestamps[i+1]], stages[i], stages[i+1],
+                        step="post", color=colors[stages[i]], alpha=0.3)
+        # 구간 중앙에 라벨 표시
+        mid_time = timestamps[i] + (timestamps[i+1] - timestamps[i]) / 2
+        ax.text(mid_time, stages[i]+0.05, labels[stages[i]], 
+                ha='center', va='bottom', fontsize=8, color=colors[stages[i]])
+
+    ax.set_yticks([0,1,2,3])
+    ax.set_yticklabels(["깊은 수면", "얕은 수면", "REM", "각성"])
+    ax.invert_yaxis()
+    ax.set_xlabel("시간")
+    ax.set_ylabel("수면 단계")
+    ax.set_title("예상 수면 주기 그래프")
+
+    st.pyplot(fig)
+
+    # 그래프 설명 (코드 보관용)
+    # st.markdown("""
+    # ### 📌 그래프 해설
+    # - **깊은 수면 (파란색)**: 신체 회복과 성장 호르몬 분비가 활발히 일어나는 단계입니다.  
+    # - **얕은 수면 (하늘색)**: 쉽게 깰 수 있는 단계로, 전체 수면의 절반 이상을 차지합니다.  
+    # - **REM 수면 (주황색)**: 꿈을 꾸는 단계이며, 뇌가 활발히 활동하면서 기억과 감정을 정리합니다.  
+    # - **각성 (빨간색)**: 깨어 있는 상태로, 중간중간 짧은 각성이 나타나는 것은 정상입니다.  
+    #
+    # 일반적으로 **90분 주기로 얕은 수면 → 깊은 수면 → REM → 얕은 수면**이 반복됩니다.  
+    # 이 그래프는 입력된 취침/기상 시간을 기준으로 **예상되는 전형적인 수면 패턴**을 시뮬레이션한 것입니다.
+    # """)
+
+    # 실제 출력
+    st.markdown("""
+    ### 📌 그래프 해설
+    - **깊은 수면 (파란색)**: 신체 회복과 성장 호르몬 분비가 활발히 일어나는 단계입니다.  
+    - **얕은 수면 (하늘색)**: 쉽게 깰 수 있는 단계로, 전체 수면의 절반 이상을 차지합니다.  
+    - **REM 수면 (주황색)**: 꿈을 꾸는 단계이며, 뇌가 활발히 활동하면서 기억과 감정을 정리합니다.  
+    - **각성 (빨간색)**: 깨어 있는 상태로, 중간중간 짧은 각성이 나타나는 것은 정상입니다.  
+
+    일반적으로 **90분 주기로 얕은 수면 → 깊은 수면 → REM → 얕은 수면**이 반복됩니다.  
+    이 그래프는 입력된 취침/기상 시간을 기준으로 **예상되는 전형적인 수면 패턴**을 시뮬레이션한 것입니다.
+    """)
+
